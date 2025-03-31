@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Shield, UserX, Lock } from 'lucide-react';
+import { Shield, UserX, Lock} from 'lucide-react';
 
 interface Hacker {
   id: number;
@@ -39,6 +39,7 @@ const HackerSecurityAnimation = ({
   const [hackers, setHackers] = useState<Hacker[]>([]);
   const [defenseLevel, setDefenseLevel] = useState(1);
   const [shieldCount, setShieldCount] = useState(1);
+  const [glowIntensity, setGlowIntensity] = useState(1);
   const animationFrameRef = useRef<number | null>(null);
   const hackerCountRef = useRef<number>(0);
   const fortressLinePosition = 70;
@@ -69,6 +70,23 @@ const HackerSecurityAnimation = ({
     
     return timeToCrack;
   };
+
+  // Add the glow effect animation
+  useEffect(() => {
+    let interval;
+    if (defenseLevel > 3) {
+      interval = setInterval(() => {
+        setGlowIntensity(prev => {
+          const newValue = prev + 0.1 * (Math.random() > 0.5 ? 1 : -1);
+          return Math.max(0.8, Math.min(1.2, newValue));
+        });
+      }, 100);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [defenseLevel]);
 
   useEffect(() => {
     if (animationFrameRef.current) {
@@ -353,14 +371,14 @@ const HackerSecurityAnimation = ({
       
       <div className="relative h-12 bg-slate-900 rounded-lg overflow-hidden border border-slate-700 mb-1">
         <div 
-          className={`absolute right-0 top-0 bottom-0 w-3/10 ${styles.fortressColor} border-l flex items-center justify-center transition-all duration-500`}
+          className={`absolute right-0 top-0 bottom-0 w-3/10 ${styles.fortressColor} flex items-center justify-center transition-all duration-500`}
           style={{ 
             width: '30%',
             boxShadow: defenseLevel > 2 ? 
-              `-1px 0 5px ${
-                defenseLevel === 7 ? 'rgba(168, 85, 247, 0.4)' :
-                defenseLevel > 4 ? 'rgba(34, 197, 94, 0.3)' : 
-                'rgba(250, 204, 21, 0.3)'
+              `-1px 0 ${5 * glowIntensity}px ${
+                defenseLevel === 7 ? `rgba(168, 85, 247, ${0.4 * glowIntensity})` :
+                defenseLevel > 4 ? `rgba(34, 197, 94, ${0.3 * glowIntensity})` : 
+                `rgba(250, 204, 21, ${0.3 * glowIntensity})`
               }` : 'none' 
           }}
         >
@@ -371,6 +389,9 @@ const HackerSecurityAnimation = ({
                   <Lock 
                     size={16}
                     className="text-purple-400"
+                    style={{
+                      filter: defenseLevel >= 7 ? `drop-shadow(0 0 ${3 * glowIntensity}px rgba(168, 85, 247, ${0.5 * glowIntensity}))` : 'none'
+                    }}
                   />
                 ) : (
                   <Shield 
@@ -382,6 +403,16 @@ const HackerSecurityAnimation = ({
                       defenseLevel >= 6 && i === 4 ? 'text-emerald-400' :
                       'text-green-500'
                     }`} 
+                    style={{
+                      filter: defenseLevel > 3 ? 
+                        `drop-shadow(0 0 ${2 * glowIntensity}px ${
+                          styles.result === 'ultimate' ? `rgba(168, 85, 247, ${0.5 * glowIntensity})` :
+                          styles.result === 'breach' ? 'none' : 
+                          styles.result === 'holding' ? `rgba(251, 146, 60, ${0.4 * glowIntensity})` : 
+                          defenseLevel >= 6 ? `rgba(52, 211, 153, ${0.5 * glowIntensity})` :
+                          `rgba(34, 197, 94, ${0.4 * glowIntensity})`
+                        })` : 'none'
+                    }}
                   />
                 )}
               </div>
@@ -408,16 +439,11 @@ const HackerSecurityAnimation = ({
                 className={`${hacker.defeated ? 'text-red-500' : 'text-slate-300'}`}
                 style={{
                   filter: (!hacker.defeated && hacker.position > fortressLinePosition) 
-                    ? 'drop-shadow(0 0 2px rgba(0, 255, 255, 0.7))'
-                    : (!hacker.defeated ? 'drop-shadow(0 0 1px rgba(0, 200, 255, 0.5))' : 'none')
+                    ? `drop-shadow(0 0 ${2 * glowIntensity}px rgba(0, 255, 255, ${0.7 * glowIntensity}))`
+                    : (!hacker.defeated ? `drop-shadow(0 0 ${1 * glowIntensity}px rgba(0, 200, 255, ${0.5 * glowIntensity}))` : 'none')
                 }}
               />
-              <div 
-                className={`absolute top-0 left-1/2 rounded-t-full transform -translate-x-1/2 -translate-y-1 ${
-                  hacker.defeated ? 'bg-red-800' : 'bg-slate-800'
-                }`}
-                style={{ width: '8px', height: '3px' }}
-              ></div>
+              
             </div>
           </div>
         ))}
