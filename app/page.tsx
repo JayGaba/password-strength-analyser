@@ -5,70 +5,123 @@ import { useState, useEffect } from 'react';
 import { Eye, EyeOff, Shield, AlertTriangle, Check, X, Upload } from 'lucide-react';
 import HackerSecurityAnimation from './components/HackerSecurityAnimation';
 
-
 export default function PasswordStrengthAnalyzer() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [strength, setStrength] = useState(0);
   const [feedback, setFeedback] = useState<string[]>([]);
   const [timeToCrack, setTimeToCrack] = useState('');
+  const [strengthReview, setStrengthReview] = useState('');
   const [fileName, setFileName] = useState('');
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSpecial: false,
+    hasMinLength: false,
+    hasRecommendedLength: false
+  });
 
-  // Mock function to calculate password strength (replace with actual logic later)
+  // Calculate password strength with 5 levels and specific time estimates
   const calculateStrength = (pwd: string) => {
-    if (!pwd) return { score: 0, feedback: [], time: '' };
+    if (!pwd) return { 
+      score: 0, 
+      feedback: [], 
+      time: '', 
+      review: '', 
+      requirements: {
+        hasUppercase: false,
+        hasLowercase: false,
+        hasNumber: false,
+        hasSpecial: false,
+        hasMinLength: false,
+        hasRecommendedLength: false
+      }
+    };
     
     let score = 0;
     const feedback: string[] = [];
     
-    // Length check
-    if (pwd.length >= 8) {
+    // Track individual requirements
+    const requirements = {
+      hasUppercase: /[A-Z]/.test(pwd),
+      hasLowercase: /[a-z]/.test(pwd),
+      hasNumber: /[0-9]/.test(pwd),
+      hasSpecial: /[^A-Za-z0-9]/.test(pwd),
+      hasMinLength: pwd.length >= 8,
+      hasRecommendedLength: pwd.length >= 12
+    };
+    
+    // Length check with bonus for longer passwords
+    if (requirements.hasRecommendedLength) {
       score += 20;
+    } else if (requirements.hasMinLength) {
+      score += 15;
     } else {
       feedback.push('Password should be at least 8 characters');
     }
     
     // Uppercase check
-    if (/[A-Z]/.test(pwd)) {
+    if (requirements.hasUppercase) {
       score += 20;
     } else {
       feedback.push('Add an uppercase letter');
     }
     
     // Lowercase check
-    if (/[a-z]/.test(pwd)) {
+    if (requirements.hasLowercase) {
       score += 20;
     } else {
       feedback.push('Add a lowercase letter');
     }
     
     // Number check
-    if (/[0-9]/.test(pwd)) {
+    if (requirements.hasNumber) {
       score += 20;
     } else {
       feedback.push('Add a number');
     }
     
     // Special character check
-    if (/[^A-Za-z0-9]/.test(pwd)) {
+    if (requirements.hasSpecial) {
       score += 20;
     } else {
       feedback.push('Add a special character');
     }
     
-    // Calculate mock time to crack
+    // Calculate time to crack and review
     let time = '';
-    if (score < 40) {
+    let review = '';
+    
+    // Check if all requirements are met for Ultimate level
+    const allRequirementsMet = 
+      requirements.hasUppercase &&
+      requirements.hasLowercase &&
+      requirements.hasNumber &&
+      requirements.hasSpecial &&
+      requirements.hasRecommendedLength;
+    
+    if (allRequirementsMet && score === 100) {
+      time = 'Ultimate';
+      review = 'This password has achieved the highest possible security level. Virtually unbreakable with current technology.';
+    } else if (score < 30) {
       time = 'Instantly';
-    } else if (score < 60) {
-      time = 'A few hours';
-    } else if (score < 80) {
-      time = 'A few months';
+      review = 'This password offers virtually no protection. It would be cracked immediately.';
+    } else if (score < 50) {
+      time = 'Seconds';
+      review = 'This password is very vulnerable. Any basic hacking attempt would break it.';
+    } else if (score < 70) {
+      time = 'Weeks';
+      review = 'Your password has basic protection but could be compromised with moderate effort.';
+    } else if (score < 90) {
+      time = '10,000+ years';
+      review = 'Very strong password. Most hackers would give up before cracking this.';
     } else {
-      time = 'Centuries';
+      time = '3+ billion years';
+      review = 'Fantastic, using that password makes you as secure as Fort Knox.';
     }
     
-    return { score, feedback, time };
+    return { score, feedback, time, review, requirements };
   };
 
   useEffect(() => {
@@ -76,21 +129,33 @@ export default function PasswordStrengthAnalyzer() {
     setStrength(result.score);
     setFeedback(result.feedback);
     setTimeToCrack(result.time);
+    setStrengthReview(result.review);
+    setPasswordRequirements(result.requirements);
   }, [password]);
 
   const getStrengthLabel = () => {
     if (strength === 0) return 'Enter Password';
-    if (strength < 40) return 'Weak';
-    if (strength < 60) return 'Fair';
-    if (strength < 80) return 'Good';
-    return 'Strong';
+    
+    // Add Ultimate level
+    if (timeToCrack === 'Ultimate') return 'Ultimate';
+    
+    if (strength < 30) return 'Very Weak';
+    if (strength < 50) return 'Weak';
+    if (strength < 70) return 'Fair';
+    if (strength < 90) return 'Strong';
+    return 'Very Strong';
   };
 
   const getStrengthColor = () => {
     if (strength === 0) return 'bg-gray-200';
-    if (strength < 40) return 'bg-red-500';
-    if (strength < 60) return 'bg-orange-500';
-    if (strength < 80) return 'bg-yellow-400';
+    
+    // Add Ultimate level with purple color
+    if (timeToCrack === 'Ultimate') return 'bg-purple-500';
+    
+    if (strength < 30) return 'bg-red-600';
+    if (strength < 50) return 'bg-red-500';
+    if (strength < 70) return 'bg-orange-500';
+    if (strength < 90) return 'bg-yellow-400';
     return 'bg-green-500';
   };
 
@@ -133,14 +198,16 @@ export default function PasswordStrengthAnalyzer() {
               </div>
             </div>
 
-            {/* Attractive Progress Bar with Transition */}
+            {/* Progress Bar with 6 Strength Levels (including Ultimate) */}
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-slate-300">Password Strength</span>
                 <span className={`text-sm font-medium ${
-                  strength < 40 ? 'text-red-400' : 
-                  strength < 60 ? 'text-orange-400' : 
-                  strength < 80 ? 'text-yellow-400' : 'text-green-400'
+                  timeToCrack === 'Ultimate' ? 'text-purple-400' :
+                  strength < 30 ? 'text-red-500' : 
+                  strength < 50 ? 'text-red-400' : 
+                  strength < 70 ? 'text-orange-400' : 
+                  strength < 90 ? 'text-yellow-400' : 'text-green-400'
                 }`}>
                   {getStrengthLabel()}
                 </span>
@@ -157,13 +224,22 @@ export default function PasswordStrengthAnalyzer() {
             {password && (
               <div className="bg-slate-900 rounded-lg p-4 mb-6 border border-slate-700">
                 <div className="flex items-center gap-2 mb-2">
-                  <Shield size={18} className={strength >= 80 ? 'text-green-500' : 'text-slate-400'} />
+                  <Shield size={18} className={
+                    timeToCrack === 'Ultimate' ? 'text-purple-500' :
+                    strength >= 90 ? 'text-green-500' : 
+                    (strength >= 70 ? 'text-yellow-400' : 'text-slate-400')
+                  } />
                   <h3 className="font-semibold">Security Analysis</h3>
                 </div>
                 
-                {/* Time to Crack */}
-                {timeToCrack && <HackerSecurityAnimation timeToCrack={timeToCrack} />}
-
+                {/* Time to Crack with Security Animation */}
+                {timeToCrack && (
+                  <HackerSecurityAnimation 
+                    timeToCrack={timeToCrack} 
+                    strengthReview={strengthReview} 
+                    passwordRequirements={passwordRequirements}
+                  />
+                )}
 
                 {/* Requirements List */}
                 <ul className="space-y-2 mt-3">
@@ -196,6 +272,12 @@ export default function PasswordStrengthAnalyzer() {
                       {password.length >= 8 ? <Check size={16} /> : <X size={16} className="text-slate-500" />}
                     </div>
                     <span>At least 8 characters long</span>
+                  </li>
+                  <li className={`flex items-start gap-2 text-sm ${password.length >= 12 ? 'text-green-400' : 'text-slate-300'}`}>
+                    <div className="min-w-6 mt-0.5">
+                      {password.length >= 12 ? <Check size={16} /> : <X size={16} className="text-slate-500" />}
+                    </div>
+                    <span>12+ characters (recommended)</span>
                   </li>
                 </ul>
 
@@ -258,7 +340,6 @@ export default function PasswordStrengthAnalyzer() {
           </div>
         </div>
       </main>
-
     </div>
   );
 }

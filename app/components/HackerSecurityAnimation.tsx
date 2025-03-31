@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Shield, UserX } from 'lucide-react';
+import { Shield, UserX, Lock } from 'lucide-react';
 
 interface Hacker {
   id: number;
@@ -15,16 +15,60 @@ interface StrengthStyles {
   fortressColor: string;
   textColor: string;
   message: string;
-  result: 'breach' | 'holding' | 'secure' | 'unknown';
+  result: 'breach' | 'holding' | 'secure' | 'ultimate' | 'unknown';
 }
 
-const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
+interface PasswordRequirements {
+  hasUppercase: boolean;
+  hasLowercase: boolean;
+  hasNumber: boolean;
+  hasSpecial: boolean;
+  hasMinLength: boolean;
+  hasRecommendedLength: boolean;
+}
+
+const HackerSecurityAnimation = ({ 
+  timeToCrack, 
+  strengthReview, 
+  passwordRequirements 
+}: { 
+  timeToCrack: string, 
+  strengthReview: string,
+  passwordRequirements?: PasswordRequirements 
+}) => {
   const [hackers, setHackers] = useState<Hacker[]>([]);
   const [defenseLevel, setDefenseLevel] = useState(1);
   const [shieldCount, setShieldCount] = useState(1);
   const animationFrameRef = useRef<number | null>(null);
   const hackerCountRef = useRef<number>(0);
   const fortressLinePosition = 70;
+
+  // Calculate how many requirements are met
+  const getRequirementsMet = () => {
+    if (!passwordRequirements) return 0;
+    
+    let count = 0;
+    if (passwordRequirements.hasUppercase) count++;
+    if (passwordRequirements.hasLowercase) count++;
+    if (passwordRequirements.hasNumber) count++;
+    if (passwordRequirements.hasSpecial) count++;
+    if (passwordRequirements.hasMinLength) count++;
+    if (passwordRequirements.hasRecommendedLength) count++;
+    
+    return count;
+  };
+
+  // Get the actual strength level, considering both time and requirements
+  const getStrengthLevel = () => {
+    const requirementsMet = getRequirementsMet();
+    
+    // If all 6 requirements are met, it's the ultimate level
+    if (requirementsMet === 6) {
+      return 'Ultimate';
+    }
+    
+    return timeToCrack;
+  };
 
   useEffect(() => {
     if (animationFrameRef.current) {
@@ -35,13 +79,19 @@ const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
     
     const createInitialHackers = () => {
       const generatedHackers: Hacker[] = [];
-      const count = timeToCrack === 'Instantly' ? 15 :
-                   timeToCrack === 'A few hours' ? 12 :
-                   timeToCrack === 'A few months' ? 10 :
-                   timeToCrack === 'A few years' ? 9 : 8;
+      const strengthLevel = getStrengthLevel();
       
+      const count = strengthLevel === 'Ultimate' ? 4 :
+                   timeToCrack === 'Instantly' ? 15 :
+                   timeToCrack === 'Seconds' ? 14 :
+                   timeToCrack === 'Weeks' ? 12 :
+                   timeToCrack === '10,000+ years' ? 10 :
+                   timeToCrack === '3+ billion years' ? 8 :
+                   timeToCrack === 'Trillions+ years' ? 6 : 12;
+      
+      // Create initial hackers that all start from the left side with spacing
       for (let i = 0; i < count; i++) {
-        const position = -10 + (i * 120 / count);
+        const position = -5 - (i * 5); // Stagger them on the left side
         generatedHackers.push({
           id: hackerCountRef.current++,
           position,
@@ -49,41 +99,56 @@ const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
           defeated: false,
           scale: 1.0,
           speed: (0.2 + Math.random() * 0.3) * (
-            timeToCrack === 'Instantly' ? 1.2 :
-            timeToCrack === 'A few hours' ? 1.0 :
-            timeToCrack === 'A few months' ? 0.8 :
-            timeToCrack === 'A few years' ? 0.7 : 0.6
+            strengthLevel === 'Ultimate' ? 0.2 :
+            timeToCrack === 'Instantly' ? 1.3 :
+            timeToCrack === 'Seconds' ? 1.1 :
+            timeToCrack === 'Weeks' ? 0.9 :
+            timeToCrack === '10,000+ years' ? 0.7 :
+            timeToCrack === '3+ billion years' ? 0.5 :
+            timeToCrack === 'Trillions+ years' ? 0.3 : 0.8
           )
         });
       }
       return generatedHackers;
     };
     
-    switch(timeToCrack) {
+    const strengthLevel = getStrengthLevel();
+    
+    switch(strengthLevel) {
+      case 'Ultimate':
+        setHackers(createInitialHackers());
+        setDefenseLevel(7);
+        setShieldCount(6);
+        break;
       case 'Instantly':
         setHackers(createInitialHackers());
         setDefenseLevel(1);
         setShieldCount(1);
         break;
-      case 'A few hours':
+      case 'Seconds':
         setHackers(createInitialHackers());
         setDefenseLevel(2);
         setShieldCount(1);
         break;
-      case 'A few months':
+      case 'Weeks':
         setHackers(createInitialHackers());
         setDefenseLevel(3);
         setShieldCount(2);
         break;
-      case 'A few years':
+      case '10,000+ years':
         setHackers(createInitialHackers());
         setDefenseLevel(4);
         setShieldCount(3);
         break;
-      case 'Centuries':
+      case '3+ billion years':
         setHackers(createInitialHackers());
         setDefenseLevel(5);
         setShieldCount(4);
+        break;
+      case 'Trillions+ years':
+        setHackers(createInitialHackers());
+        setDefenseLevel(6);
+        setShieldCount(5);
         break;
       default:
         setHackers([]);
@@ -100,29 +165,35 @@ const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
         lastTime = time;
         
         setHackers(prevHackers => {
-          const shouldAddNew = Math.random() < 0.05;
+          const strengthLevel = getStrengthLevel();
+          const shouldAddNew = Math.random() < (strengthLevel === 'Ultimate' ? 0.01 : 0.05);
           const newHackers = shouldAddNew ? [{
             id: hackerCountRef.current++,
-            position: -10,
+            position: -10, // Always start new hackers from left side
             lane: 10 + Math.random() * 80,
             defeated: false,
             scale: 1.0,
             speed: (0.2 + Math.random() * 0.3) * (
-              timeToCrack === 'Instantly' ? 1.2 :
-              timeToCrack === 'A few hours' ? 1.0 :
-              timeToCrack === 'A few months' ? 0.8 :
-              timeToCrack === 'A few years' ? 0.7 : 0.6
-            ),
-            releases: []
+              strengthLevel === 'Ultimate' ? 0.2 :
+              timeToCrack === 'Instantly' ? 1.3 :
+              timeToCrack === 'Seconds' ? 1.1 :
+              timeToCrack === 'Weeks' ? 0.9 :
+              timeToCrack === '10,000+ years' ? 0.7 :
+              timeToCrack === '3+ billion years' ? 0.5 :
+              timeToCrack === 'Trillions+ years' ? 0.3 : 0.8
+            )
           }] : [];
           
-        
-          
+          // Fixed penetration rates according to requirements
           const survivalRate = 
-            timeToCrack === 'Instantly' ? 1.0 :
-            timeToCrack === 'A few hours' ? 0.7 :
-            timeToCrack === 'A few months' ? 0.4 :
-            timeToCrack === 'A few years' ? 0.2 : 0.0;
+            strengthLevel === 'Ultimate' ? 0.0 :    // 0% penetration
+            timeToCrack === 'Instantly' ? 1.0 :     // 100% penetration (Very weak)
+            timeToCrack === 'Seconds' ? 0.8 :       // 80% penetration (Weak)  
+            timeToCrack === 'Weeks' ? 0.6 :         // 60% penetration (Fair)
+            timeToCrack === '10,000+ years' ? 0.3 : // 30% penetration (Strong)
+            timeToCrack === '3+ billion years' ? 0.1 : // 10% penetration (Very strong)
+            timeToCrack === 'Trillions+ years' ? 0.1 : // 10% penetration (Very strong) 
+            0.5;
           
           const updatedHackers = prevHackers
             .map(hacker => {
@@ -138,9 +209,16 @@ const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
               let blinkProgress = hacker.blinkProgress || 0;
               
               if (approachesLine && !isDefeated) {
-                isDefeated = Math.random() > survivalRate;
-                if (isDefeated) {
+                // For Ultimate strength, 0% should penetrate (all are defeated)
+                if (strengthLevel === 'Ultimate') {
+                  isDefeated = true;
                   blinkProgress = 1;
+                } else {
+                  // For other strength levels, use the survival rate
+                  isDefeated = Math.random() > survivalRate;
+                  if (isDefeated) {
+                    blinkProgress = 1;
+                  }
                 }
               }
               
@@ -180,43 +258,59 @@ const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [timeToCrack]);
+  }, [timeToCrack, passwordRequirements]);
 
   const getStrengthStyles = (): StrengthStyles => {
-    switch(timeToCrack) {
+    const strengthLevel = getStrengthLevel();
+    
+    switch(strengthLevel) {
+      case 'Ultimate':
+        return {
+          fortressColor: 'bg-purple-500/30 border-purple-500/50',
+          textColor: 'text-purple-400',
+          message: 'Fortress Impenetrable',
+          result: 'ultimate'
+        };
       case 'Instantly':
         return {
-          fortressColor: 'bg-red-500/20 border-red-500/30',
+          fortressColor: 'bg-red-600/20 border-red-600/30',
           textColor: 'text-red-500',
           message: 'Fortress breached!',
           result: 'breach'
         };
-      case 'A few hours':
+      case 'Seconds':
+        return {
+          fortressColor: 'bg-red-500/20 border-red-500/30',
+          textColor: 'text-red-400',
+          message: 'Very weak defenses',
+          result: 'breach'
+        };
+      case 'Weeks':
         return {
           fortressColor: 'bg-orange-500/20 border-orange-500/30',
           textColor: 'text-orange-400',
-          message: 'Weak defenses',
-          result: 'breach'
+          message: 'Basic protection',
+          result: 'holding'
         };
-      case 'A few months':
+      case '10,000+ years':
         return {
           fortressColor: 'bg-yellow-400/20 border-yellow-400/30',
           textColor: 'text-yellow-400',
-          message: 'Decent protection',
-          result: 'holding'
-        };
-      case 'A few years':
-        return {
-          fortressColor: 'bg-teal-500/20 border-teal-500/30',
-          textColor: 'text-teal-400',
           message: 'Strong fortress',
           result: 'secure'
         };
-      case 'Centuries':
+      case '3+ billion years':
         return {
           fortressColor: 'bg-green-500/20 border-green-500/30',
           textColor: 'text-green-500',
           message: 'Impenetrable fortress',
+          result: 'secure'
+        };
+      case 'Trillions+ years':
+        return {
+          fortressColor: 'bg-emerald-400/20 border-emerald-400/30',
+          textColor: 'text-emerald-400',
+          message: 'Quantum-resistant fortress',
           result: 'secure'
         };
       default:
@@ -230,13 +324,27 @@ const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
   };
 
   const styles = getStrengthStyles();
+  const strengthLevel = getStrengthLevel();
 
   return (
     <div className="mb-3">
       <div className="flex justify-between items-center mb-1">
-        <h3 className={`text-sm font-medium ${styles.textColor}`}>Security Fortress</h3>
-        <span className="text-xs text-slate-400">
-          {styles.result === 'breach' ? 'High Risk' : 
+        <h3 className={`text-sm font-medium ${styles.textColor}`}>
+          {strengthLevel === 'Ultimate' ? (
+            <span>ULTIMATE SECURITY<span className="ml-2">💎</span></span>
+          ) : (
+            <span>Time to crack: <span className="font-bold">{timeToCrack}</span></span>
+          )}
+        </h3>
+        <span className={`text-xs ${
+          styles.result === 'ultimate' ? 'text-purple-400' :
+          styles.result === 'breach' ? 'text-red-400' : 
+          styles.result === 'holding' ? 'text-orange-400' : 
+          styles.result === 'secure' ? 'text-green-400' : 
+          'text-slate-400'
+        }`}>
+          {styles.result === 'ultimate' ? 'Fortress Impenetrable' :
+           styles.result === 'breach' ? 'High Risk' : 
            styles.result === 'holding' ? 'Medium Risk' : 
            styles.result === 'secure' ? 'Secure' : 
            'Unknown'}
@@ -248,20 +356,35 @@ const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
           className={`absolute right-0 top-0 bottom-0 w-3/10 ${styles.fortressColor} border-l flex items-center justify-center transition-all duration-500`}
           style={{ 
             width: '30%',
-            boxShadow: defenseLevel > 2 ? `-1px 0 5px ${defenseLevel > 4 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(250, 204, 21, 0.3)'}` : 'none' 
+            boxShadow: defenseLevel > 2 ? 
+              `-1px 0 5px ${
+                defenseLevel === 7 ? 'rgba(168, 85, 247, 0.4)' :
+                defenseLevel > 4 ? 'rgba(34, 197, 94, 0.3)' : 
+                'rgba(250, 204, 21, 0.3)'
+              }` : 'none' 
           }}
         >
           <div className="flex flex-row justify-center items-center h-full">
             {Array(shieldCount).fill(0).map((_, i) => (
-              <Shield 
-                key={i} 
-                size={16}
-                className={`mx-1 ${
-                  styles.result === 'breach' ? 'text-red-500 opacity-50' : 
-                  styles.result === 'holding' ? 'text-orange-400' : 
-                  'text-green-500'
-                }`} 
-              />
+              <div key={i} className="relative mx-1">
+                {i === 5 && defenseLevel >= 7 ? (
+                  <Lock 
+                    size={16}
+                    className="text-purple-400"
+                  />
+                ) : (
+                  <Shield 
+                    size={16}
+                    className={`${
+                      styles.result === 'ultimate' ? 'text-purple-400' :
+                      styles.result === 'breach' ? 'text-red-500 opacity-50' : 
+                      styles.result === 'holding' ? 'text-orange-400' : 
+                      defenseLevel >= 6 && i === 4 ? 'text-emerald-400' :
+                      'text-green-500'
+                    }`} 
+                  />
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -300,8 +423,8 @@ const HackerSecurityAnimation = ({ timeToCrack }: { timeToCrack: string }) => {
         ))}
       </div>
       
-      <div className="flex justify-start items-center">
-        <span className={`text-xs ${styles.textColor}`}>{styles.message}</span>
+      <div className="flex justify-between items-start">
+        <span className={`text-xs italic ${styles.textColor}`}>Review: {strengthReview}</span>
       </div>
     </div>
   );
