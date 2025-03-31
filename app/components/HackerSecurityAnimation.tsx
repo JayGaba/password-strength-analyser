@@ -371,7 +371,7 @@ const HackerSecurityAnimation = ({
       
       <div className="relative h-12 bg-slate-900 rounded-lg overflow-hidden border border-slate-700 mb-1">
         <div 
-          className={`absolute right-0 top-0 bottom-0 w-3/10 ${styles.fortressColor} border-l flex items-center justify-center transition-all duration-500`}
+          className={`absolute right-0 top-0 bottom-0 w-3/10 ${styles.fortressColor} flex items-center justify-center transition-all duration-500`}
           style={{ 
             width: '30%',
             boxShadow: defenseLevel > 2 ? 
