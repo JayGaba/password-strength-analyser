@@ -210,7 +210,7 @@ const HackerSecurityAnimation = ({
             timeToCrack === 'Weeks' ? 0.6 :         // 60% penetration (Fair)
             timeToCrack === '10,000+ years' ? 0.3 : // 30% penetration (Strong)
             timeToCrack === '3+ billion years' ? 0.1 : // 10% penetration (Very strong)
-            timeToCrack === 'Trillions+ years' ? 0.1 : // 10% penetration (Very strong) 
+            timeToCrack === 'Trillions+ years' ? 0.05 : // 5% penetration (Super strong) 
             0.5;
           
           const updatedHackers = prevHackers
